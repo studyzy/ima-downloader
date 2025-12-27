@@ -66,6 +66,15 @@ func main() {
 		return
 	}
 
+	// 读取起始索引
+	startIndex, err := readStartIndex()
+	if err != nil {
+		fmt.Printf("错误：读取起始索引失败 - %v\n", err)
+		logger.Printf("错误：读取起始索引失败 - %v", err)
+		return
+	}
+	logger.Printf("起始索引: %d", startIndex)
+
 	// 创建下载目录
 	downloadDir := "downloads"
 	if err := os.MkdirAll(downloadDir, 0755); err != nil {
@@ -84,7 +93,7 @@ func main() {
 
 	// 开始分页下载
 	pageSize := 20 // 每页20个文件
-	currentIndex := 0
+	currentIndex := startIndex
 	pageNum := 1
 	totalDownloaded := 0
 	totalFailed := 0
@@ -294,6 +303,42 @@ func readHTTPRequest() (*HTTPHeaderInfo, error) {
 	fmt.Printf("✓ Body: %s\n\n", info.Body)
 
 	return info, nil
+}
+
+// readStartIndex 读取用户输入的起始索引
+func readStartIndex() (int, error) {
+	fmt.Println("请输入起始资源编号（直接回车从0开始，或输入整数指定起始位置）：")
+	
+	scanner := bufio.NewScanner(os.Stdin)
+	if !scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return 0, err
+		}
+		// 用户直接回车，返回0
+		return 0, nil
+	}
+	
+	input := strings.TrimSpace(scanner.Text())
+	
+	// 如果输入为空，返回0
+	if input == "" {
+		fmt.Println("✓ 从索引 0 开始下载\n")
+		return 0, nil
+	}
+	
+	// 尝试解析为整数
+	var startIndex int
+	_, err := fmt.Sscanf(input, "%d", &startIndex)
+	if err != nil {
+		return 0, fmt.Errorf("无效的数字格式: %v", err)
+	}
+	
+	if startIndex < 0 {
+		return 0, fmt.Errorf("起始索引不能为负数")
+	}
+	
+	fmt.Printf("✓ 从索引 %d 开始下载\n\n", startIndex)
+	return startIndex, nil
 }
 
 // getKnowledgeList 获取知识库列表
